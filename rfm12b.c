@@ -225,7 +225,7 @@ rfm12_unclaim_spi_message(struct rfm12_spi_message* spi_msg)
 }
 
 struct spi_transfer
-rfm12_make_spi_transfer(uint16_t cmd, u8* tx_buf, u8* rx_buf)
+rfm12_make_spi_transfer(uint16_t cmd, u8* tx_buf, u8* rx_buf, uint16_t delay_usecs)
 {
    struct spi_transfer tr = {
      .tx_buf           = tx_buf,
@@ -233,7 +233,7 @@ rfm12_make_spi_transfer(uint16_t cmd, u8* tx_buf, u8* rx_buf)
      .len              = 2,
      .cs_change        = 0,
      .bits_per_word    = 0,
-     .delay_usecs      = 0,
+     .delay_usecs      = delay_usecs,
      .speed_hz         = 0
    };
 
@@ -245,11 +245,12 @@ rfm12_make_spi_transfer(uint16_t cmd, u8* tx_buf, u8* rx_buf)
 
 struct spi_transfer
 rfm12_control_spi_transfer(struct rfm12_spi_message* msg,
-   u8 pos, uint16_t cmd)
+   u8 pos, uint16_t cmd, uint16_t delay_usecs)
 {   
    return rfm12_make_spi_transfer(cmd,
             msg->spi_tx + 2*pos,
-            msg->spi_rx + 2*pos);
+            msg->spi_rx + 2*pos,
+            delay_usecs);
 }
 
 static void
@@ -311,7 +312,7 @@ rfm12_send_generic_async_cmd(struct rfm12_data* rfm12, uint16_t* cmds,
    spi_msg->spi_msg.context = (void*)spi_msg;
 
    spi_msg->spi_transfers[0] =
-     rfm12_control_spi_transfer(spi_msg, 0, cmds[0]);
+     rfm12_control_spi_transfer(spi_msg, 0, cmds[0], delay_usecs);
 
    i=1;
    if (num_cmds > 1) {
@@ -321,7 +322,7 @@ rfm12_send_generic_async_cmd(struct rfm12_data* rfm12, uint16_t* cmds,
            spi_message_add_tail(&spi_msg->spi_transfers[i-1], &spi_msg->spi_msg);
    
            spi_msg->spi_transfers[i] =
-               rfm12_control_spi_transfer(spi_msg, i, cmds[i]);
+               rfm12_control_spi_transfer(spi_msg, i, cmds[i], delay_usecs);
         }
    } 
    
@@ -362,7 +363,7 @@ rfm12_start_receiving(struct rfm12_data* rfm12)
    cmd[0] = RF_RX_FIFO_READ;
    cmd[1] = RF_RECEIVER_ON;
    
-   err = rfm12_send_generic_async_cmd(rfm12, cmd, 2, 0,
+   err = rfm12_send_generic_async_cmd(rfm12, cmd, 2, READ_FIFO_WAIT,
      NULL, RFM12_STATE_NO_CHANGE);
    if (0 == err) {
      rfm12->in_cur_num_bytes = 0;
@@ -384,15 +385,15 @@ rfm12_setup(struct rfm12_data* rfm12)
 
    spi_message_init(&msg);
 
-   tr = rfm12_make_spi_transfer(RF_READ_STATUS, tx_buf+0, NULL);
+   tr = rfm12_make_spi_transfer(RF_READ_STATUS, tx_buf+0, NULL, 0);
    tr.cs_change = 1;
    spi_message_add_tail(&tr, &msg);
 
-   tr2 = rfm12_make_spi_transfer(RF_SLEEP_MODE, tx_buf+2, NULL);
+   tr2 = rfm12_make_spi_transfer(RF_SLEEP_MODE, tx_buf+2, NULL, 0);
    tr2.cs_change = 1;
    spi_message_add_tail(&tr2, &msg);
 
-   tr3 = rfm12_make_spi_transfer(RF_TXREG_WRITE, tx_buf+4, NULL);
+   tr3 = rfm12_make_spi_transfer(RF_TXREG_WRITE, tx_buf+4, NULL, 0);
    spi_message_add_tail(&tr3, &msg);
 
    err = spi_sync(rfm12->spi, &msg);
@@ -406,67 +407,67 @@ rfm12_setup(struct rfm12_data* rfm12)
    spi_message_init(&msg);
 
    tr = rfm12_make_spi_transfer(0x80C7 |
-         ((rfm12->band_id & 0xff) << 4), tx_buf+0, NULL);
+         ((rfm12->band_id & 0xff) << 4), tx_buf+0, NULL, 0);
    tr.cs_change = 1;
    spi_message_add_tail(&tr, &msg);
 
-   tr2 = rfm12_make_spi_transfer(0xA640, tx_buf+2, NULL);
+   tr2 = rfm12_make_spi_transfer(0xA640, tx_buf+2, NULL, 0);
    tr2.cs_change = 1;
    spi_message_add_tail(&tr2, &msg);
 
-   tr3 = rfm12_make_spi_transfer(0xC600 | rfm12->bit_rate, tx_buf+4, NULL);
+   tr3 = rfm12_make_spi_transfer(0xC600 | rfm12->bit_rate, tx_buf+4, NULL, 0);
    tr3.cs_change = 1;
    spi_message_add_tail(&tr3, &msg);
 
-   tr4 = rfm12_make_spi_transfer(0x94A2, tx_buf+6, NULL);
+   tr4 = rfm12_make_spi_transfer(0x94A2, tx_buf+6, NULL, 0);
    tr4.cs_change = 1;
    spi_message_add_tail(&tr4, &msg);
 
-   tr5 = rfm12_make_spi_transfer(0xC2AC, tx_buf+8, NULL);
+   tr5 = rfm12_make_spi_transfer(0xC2AC, tx_buf+8, NULL, 0);
    tr5.cs_change = 1;
    spi_message_add_tail(&tr5, &msg);
 
    if (0 != rfm12->group_id) {
-     tr6 = rfm12_make_spi_transfer(0xCA83, tx_buf+10, NULL);
+     tr6 = rfm12_make_spi_transfer(0xCA83, tx_buf+10, NULL, 0);
      tr6.cs_change = 1;
      spi_message_add_tail(&tr6, &msg);
 
      tr7 = rfm12_make_spi_transfer(0xCE00 |
-        rfm12->group_id, tx_buf+12, NULL);
+        rfm12->group_id, tx_buf+12, NULL, 0);
      tr7.cs_change = 1;
      spi_message_add_tail(&tr7, &msg);
    } else {
-     tr6 = rfm12_make_spi_transfer(0xCA8B, tx_buf+10, NULL);
+     tr6 = rfm12_make_spi_transfer(0xCA8B, tx_buf+10, NULL, 0);
      tr6.cs_change = 1;
      spi_message_add_tail(&tr6, &msg);
 
-     tr7 = rfm12_make_spi_transfer(0xCE2D, tx_buf+12, NULL);
+     tr7 = rfm12_make_spi_transfer(0xCE2D, tx_buf+12, NULL, 0);
      tr7.cs_change = 1;
      spi_message_add_tail(&tr7, &msg);
    }
 
-   tr8 = rfm12_make_spi_transfer(0xC483, tx_buf+14, NULL);
+   tr8 = rfm12_make_spi_transfer(0xC483, tx_buf+14, NULL, 0);
    tr8.cs_change = 1;
    spi_message_add_tail(&tr8, &msg);
 
-   tr9 = rfm12_make_spi_transfer(0x9850, tx_buf+16, NULL);
+   tr9 = rfm12_make_spi_transfer(0x9850, tx_buf+16, NULL, 0);
    tr9.cs_change = 1;
    spi_message_add_tail(&tr9, &msg);
 
-   tr10 = rfm12_make_spi_transfer(0xCC77, tx_buf+18, NULL);
+   tr10 = rfm12_make_spi_transfer(0xCC77, tx_buf+18, NULL, 0);
    tr10.cs_change = 1;
    spi_message_add_tail(&tr10, &msg);
 
-   tr11 = rfm12_make_spi_transfer(0xE000, tx_buf+20, NULL);
+   tr11 = rfm12_make_spi_transfer(0xE000, tx_buf+20, NULL, 0);
    tr11.cs_change = 1;
    spi_message_add_tail(&tr11, &msg);
 
-   tr12 = rfm12_make_spi_transfer(0xC800, tx_buf+22, NULL);
+   tr12 = rfm12_make_spi_transfer(0xC800, tx_buf+22, NULL, 0);
    tr12.cs_change = 1;
    spi_message_add_tail(&tr12, &msg);
 
    // set low battery threshold to 2.9V
-   tr13 = rfm12_make_spi_transfer(0xC047, tx_buf+24, NULL);
+   tr13 = rfm12_make_spi_transfer(0xC047, tx_buf+24, NULL, 0);
    spi_message_add_tail(&tr13, &msg);
 
    err = spi_sync(rfm12->spi, &msg);
@@ -474,7 +475,7 @@ rfm12_setup(struct rfm12_data* rfm12)
    if (0 == err) {
      spi_message_init(&msg);
 
-     tr = rfm12_make_spi_transfer(RF_READ_STATUS, tx_buf+0, NULL);
+     tr = rfm12_make_spi_transfer(RF_READ_STATUS, tx_buf+0, NULL, 0);
      spi_message_add_tail(&tr, &msg);
 
      err = spi_sync(rfm12->spi, &msg);
@@ -744,39 +745,50 @@ rfm12_recv_spi_completion_handler(void *arg)
          ((status & RF_STATUS_BIT_FFIT_RGIT) && !(status & RF_STATUS_BIT_FFEM)) ||
          (status & RF_STATUS_BIT_FFOV_RGUR);
       
-   if (valid_interrupt && RFM12_STATE_LISTEN == rfm12->state)
+   if (valid_interrupt && RFM12_STATE_LISTEN == rfm12->state){
          rfm12->state = RFM12_STATE_RECV;
+    }
 
    if (valid_interrupt) {
       if (NULL != rfm12->in_buf) {
         if (rfm12->in_buf_pos < (rfm12->in_buf + DATA_BUF_SIZE)) {
           *rfm12->in_buf_pos++ = recv_data[3];
+          printk(KERN_DEBUG "%s:%d - %s() \n", __FILE__, __LINE__, __FUNCTION__ );
           
-            if (0 == rfm12->in_cur_num_bytes)
+            if (0 == rfm12->in_cur_num_bytes){
                 rfm12->crc16 = rfm12_crc16_update(~0, rfm12->group_id);
-            
+                printk(KERN_DEBUG "%s:%d - %s()  CRC Group ID: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->crc16);
+
+            }
             rfm12->crc16 = rfm12_crc16_update(rfm12->crc16, recv_data[3]);
+            printk(KERN_DEBUG "%s:%d - %s()  CRC data[3]: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->crc16);
         }
    
         if (1 == rfm12->in_cur_num_bytes) {
           rfm12->in_cur_len_pos = rfm12->in_buf_pos-1;
    
-          if (*rfm12->in_cur_len_pos > RF_MAX_DATA_LEN)
+          if (*rfm12->in_cur_len_pos > RF_MAX_DATA_LEN){
             // if the data len is larger than RF_MAX_DATA_LEN, we
             // ignore this packet early.
+            printk(KERN_DEBUG "%s:%d - %s()  Position in LEN: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos);
             *rfm12->in_cur_len_pos = 0;
+          }
         }
    
         if (1 < rfm12->in_cur_num_bytes) {         
           // +2 ... those are the CRC bytes, +2 for header & length
           if (rfm12->in_cur_num_bytes+1 >= (*rfm12->in_cur_len_pos + RF_EXTRA_LEN) ||
              rfm12->in_cur_num_bytes+1 >= (RF_MAX_LEN)) {
+              printk(KERN_DEBUG "%s:%d - %s()  Position in rx_buf: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->in_cur_num_bytes);
+              printk(KERN_DEBUG "%s:%d - %s()  Position in LEN: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos);
+              printk(KERN_DEBUG "%s:%d - %s()  Position in LEN + EXTRA: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos + RF_EXTRA_LEN);
             (void)rfm12_finish_receiving(rfm12, 0);
             packet_finished = 1;
           }
         }
    
         if (!packet_finished) {
+          printk(KERN_DEBUG "%s:%d - %s()  Packet Not Finished \n", __FILE__, __LINE__, __FUNCTION__);
           rfm12->in_cur_num_bytes++;  
           rfm12_update_rxtx_watchdog(rfm12, 0);
         } 
@@ -1096,6 +1108,7 @@ rfm12_read(struct file* filp, char __user *buf, size_t count, loff_t* f_pos)
    int length = 0, bytes_to_copy = 0, mmovelen = 0, offset = 0;
    unsigned long flags;
 
+   printk(KERN_DEBUG "Reading data \n");
    if (rfm12->in_cur_end == rfm12->in_buf)
      wait_event_interruptible(rfm12->wait_read,
          (rfm12->in_cur_end > rfm12->in_buf));

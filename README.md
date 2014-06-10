@@ -51,6 +51,19 @@ Also, be sure to add an antenna to your RFM12B board (ANT pin), or the range and
     P9/31                 SCK
     P9/42                 nSEL
 
+**Gumstix Duovero**
+*Level shifter is necessary*
+
+    Duovero               RFM12B
+    ---------------------------------
+    GND                   GND
+    VCC_1.8               VDD (+3.3V)
+    GPIO122               nIRQ
+    MCSPI1_MISO           SDO
+    MCSPI1_MOSI           SDI
+    MCSPI1_CLK            SCK
+    MCSPI1_CS             nSEL
+
 ## Installation
 
 Generally, you only need to clone the repository and run `make` to build the kernel module, then `insmod rfm12b.ko` to insert it into the kernel.
@@ -59,7 +72,7 @@ I've included more detailed steps below for the actual Linux distributions I am 
 
 **Raspberry Pi — Raspbian**
 
-1.    Install the kernel sources for your running kernel, either manually or by using a script such as this: [https://gist.github.com/azbesthu/3893319](https://gist.github.com/azbesthu/38933
+1.    Install the kernel sources for your running kernel, either manually or by using a script such as this: [https://gist.github.com/azbesthu/3893319](https://gist.github.com/azbesthu/38933)
 2.    Open the `rfm12b_config.h` file, read it carefully and edit the settings to your liking. Be especially sure to correctly choose the board you are building for.
 3.    Clone this repository and run `make`
 4.    Make sure that the RFM12B module is connect

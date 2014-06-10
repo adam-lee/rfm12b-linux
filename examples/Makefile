@@ -31,26 +31,27 @@ all: $(TESTS)
 
 rfm12b_read: rfm12b_read/rfm12b_read.o $(OBJ)
 	$(dir)
-	gcc $< $(OBJ) -o bin/$@  
+	arm-linux-gnueabi-gcc $< $(OBJ) -o bin/$@
 
 rfm12b_write: rfm12b_write/rfm12b_write.o $(OBJ)
 	$(dir)
-	gcc $< $(OBJ) -o bin/$@
+	arm-linux-gnueabi-gcc $< $(OBJ) -o bin/$@
 
 rfm12b_echo: rfm12b_echo/rfm12b_echo.o $(OBJ)
 	$(dir)
-	gcc $< $(OBJ) -o bin/$@  
+	arm-linux-gnueabi-gcc $< $(OBJ) -o bin/$@
 
 rfm12b_chat: rfm12b_chat/rfm12b_chat.o $(OBJ)
 	$(dir)
-	gcc $< $(OBJ) -o bin/$@   
+	arm-linux-gnueabi-gcc $< $(OBJ) -o bin/$@
 
 rfm12b_jeenode: rfm12b_jeenode/rfm12b_jeenode.o $(OBJ)
 	$(dir)
-	gcc $< $(OBJ) -o bin/$@      
+	arm-linux-gnueabi-gcc $< $(OBJ) -o bin/$@
 
 .c.o:
-	gcc -c $< -o $@    
+	$(info .c.o: $<)
+	arm-linux-gnueabi-gcc -c $< -o $@
 
 clean:
 	rm -f $(OBJ) $(OBJ_PROG)
