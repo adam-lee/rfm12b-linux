@@ -753,42 +753,31 @@ rfm12_recv_spi_completion_handler(void *arg)
       if (NULL != rfm12->in_buf) {
         if (rfm12->in_buf_pos < (rfm12->in_buf + DATA_BUF_SIZE)) {
           *rfm12->in_buf_pos++ = recv_data[3];
-          printk(KERN_DEBUG "%s:%d - %s() \n", __FILE__, __LINE__, __FUNCTION__ );
           
-            if (0 == rfm12->in_cur_num_bytes){
+            if (0 == rfm12->in_cur_num_bytes)
                 rfm12->crc16 = rfm12_crc16_update(~0, rfm12->group_id);
-                printk(KERN_DEBUG "%s:%d - %s()  CRC Group ID: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->crc16);
-
-            }
             rfm12->crc16 = rfm12_crc16_update(rfm12->crc16, recv_data[3]);
-            printk(KERN_DEBUG "%s:%d - %s()  CRC data[3]: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->crc16);
         }
    
         if (1 == rfm12->in_cur_num_bytes) {
           rfm12->in_cur_len_pos = rfm12->in_buf_pos-1;
    
-          if (*rfm12->in_cur_len_pos > RF_MAX_DATA_LEN){
+          if (*rfm12->in_cur_len_pos > RF_MAX_DATA_LEN)
             // if the data len is larger than RF_MAX_DATA_LEN, we
             // ignore this packet early.
-            printk(KERN_DEBUG "%s:%d - %s()  Position in LEN: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos);
             *rfm12->in_cur_len_pos = 0;
-          }
         }
    
         if (1 < rfm12->in_cur_num_bytes) {         
           // +2 ... those are the CRC bytes, +2 for header & length
           if (rfm12->in_cur_num_bytes+1 >= (*rfm12->in_cur_len_pos + RF_EXTRA_LEN) ||
              rfm12->in_cur_num_bytes+1 >= (RF_MAX_LEN)) {
-              printk(KERN_DEBUG "%s:%d - %s()  Position in rx_buf: %d \n", __FILE__, __LINE__, __FUNCTION__, rfm12->in_cur_num_bytes);
-              printk(KERN_DEBUG "%s:%d - %s()  Position in LEN: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos);
-              printk(KERN_DEBUG "%s:%d - %s()  Position in LEN + EXTRA: %d \n", __FILE__, __LINE__, __FUNCTION__, *rfm12->in_cur_len_pos + RF_EXTRA_LEN);
             (void)rfm12_finish_receiving(rfm12, 0);
             packet_finished = 1;
           }
         }
    
         if (!packet_finished) {
-          printk(KERN_DEBUG "%s:%d - %s()  Packet Not Finished \n", __FILE__, __LINE__, __FUNCTION__);
           rfm12->in_cur_num_bytes++;  
           rfm12_update_rxtx_watchdog(rfm12, 0);
         } 
@@ -1108,7 +1097,6 @@ rfm12_read(struct file* filp, char __user *buf, size_t count, loff_t* f_pos)
    int length = 0, bytes_to_copy = 0, mmovelen = 0, offset = 0;
    unsigned long flags;
 
-   printk(KERN_DEBUG "Reading data \n");
    if (rfm12->in_cur_end == rfm12->in_buf)
      wait_event_interruptible(rfm12->wait_read,
          (rfm12->in_cur_end > rfm12->in_buf));
