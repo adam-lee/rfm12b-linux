@@ -64,6 +64,14 @@ Also, be sure to add an antenna to your RFM12B board (ANT pin), or the range and
     MCSPI1_CLK            SCK
     MCSPI1_CS             nSEL
 
+Make sure to set the correct pinmux in the Linux kernel:
+
+    ABE_DMIC_DIN3         OMAP_MUX_MODE3 | OMAP_PIN_INPUT_PULLUP
+    MCSPI1_CLK            OMAP_PIN_INPUT  | OMAP_MUX_MODE0
+    MCSPI1_CS1            OMAP_PIN_INPUT_PULLUP | OMAP_MUX_MODE0
+    MCSPI1_SIMO           OMAP_PIN_OUTPUT | OMAP_MUX_MODE0
+    MCSPI1_SOMI           OMAP_PIN_INPUT  | OMAP_MUX_MODE0
+
 ## Installation
 
 Generally, you only need to clone the repository and run `make` to build the kernel module, then `insmod rfm12b.ko` to insert it into the kernel.
